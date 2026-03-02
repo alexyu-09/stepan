@@ -8,13 +8,16 @@ This is a web-based utility designed to facilitate supplier data management. It 
 ## Technical Stack
 - **Framework**: React 19 (Vite + TypeScript)
 - **Styling**: Vanilla CSS (Modern aesthetic with glassmorphism)
-- **Infrastructure**: Docker + Nginx (Production-ready containerization)
+- **Infrastructure**: Vercel (Cloud Hosting + Serverless Functions + Cron Jobs)
+- **Database**:
+  - **Supabase (PostgreSQL)**: Primary cloud database for inventory tracking, snapshots, and global settings.
+  - **IndexedDB**: Local browser storage for the Price List Converter (sessions & history).
 - **Libraries**:
   - `xlsx`: For parsing and exporting Excel files
   - `papaparse`: For CSV parsing
   - `lucide-react`: For iconography
   - `translate`: For RU <-> UA machine translation
-  - `idb`: For persistent browser storage (IndexedDB)
+  - `@supabase/supabase-js`: Client for cloud database interaction
 
 ## Core Features & Logic
 
@@ -45,11 +48,14 @@ Interactive editing directly in the results table:
 - **Mapping Cache**: The system remembers your start row and column mapping for each file.
 
 ### 6. Inventory Tracking & Notifications
-Defined in `src/components/InventoryTracker.tsx` and `src/utils/inventoryStorage.ts`.
+Defined in `src/components/InventoryTracker.tsx`, `src/utils/inventoryStorage.ts`.
+- **Supabase Backend**: All tracker configurations and snapshots are stored in the cloud, enabling cross-device synchronization.
 - **Google Sheets Monitoring**: Track changes in specific columns (Product Name and Availability) of public Google Sheets.
-- **Change Detection**: Compares current data with the previous snapshot to identify items that became available (🟢), unavailable (🔴), or changed state (🟡).
+- **Change Detection**: Compares current data with the previous snapshot stored in Supabase to identify items that became available (🟢), unavailable (🔴), or changed state (🟡).
 - **Telegram Notifications**: Automated alerts sent via Telegram bot whenever changes are detected.
-- **Scheduled Checks**: Integrated scheduler for automated polling at **09:00** and **16:00 (Kyiv time)**.
+- **Cloud Autopilot (Vercel Cron)**: 
+  - **Automated Scheduler**: A serverless function (`api/check-inventory.ts`) runs every day at **09:00 (Kyiv time)** independently of the browser.
+  - **Manual Trigger**: Users can still trigger checks manually from the web UI.
 - **Visual Diffing**: Interactive preview of detected changes before and after the update.
 
 ## User Interface Flow
@@ -78,16 +84,27 @@ The application uses a tab-based navigation to switch between the two main modul
 - **Monitoring**: Perform manual checks or rely on the automated schedule (09:00/16:00 Kyiv).
 - **History**: View past snapshots and change history for each tracked document.
 
+## Serverless & API
+- `api/check-inventory.ts`: Core logic for the cloud autopilot (Vercel serverless function).
+- `vercel.json`: Configuration for Vercel Cron Jobs and routing.
+
 ## Key Files
 - `src/main.tsx`: App Shell with navigation and routing.
 - `src/App.tsx`: Converter module UI and state coordination.
-- `src/components/InventoryTracker.tsx`: Monitoring module UI and background scheduler.
-- `src/hooks/useFileProcessing.ts`: Converter processing logic and file parsing.
-- `src/utils/inventoryStorage.ts`: Tracker-specific storage, fetching, and Telegram logic.
+- `src/components/InventoryTracker.tsx`: Monitoring module UI and manual/local scheduler coordination.
+- `src/lib/supabaseClient.ts`: Supabase client initialization.
+- `src/utils/inventoryStorage.ts`: Supabase-based storage logic for trackers, snapshots, and settings.
 - `src/utils/mapper.ts`: Asynchronous logic for populating the 44-column target schema.
 - `src/utils/generators.ts`: SKU/Alias generation and Cached Translation API wrapper.
 - `src/constants/categories.ts`: Central registry for product categories.
-- `src/utils/storage.ts`: Main IndexedDB persistence layer.
+- `src/utils/storage.ts`: IndexedDB persistence layer for the Converter module.
+
+## Environment Variables
+Required for deployment and local development (see `.env`):
+- `VITE_SUPABASE_URL`: Supabase project URL.
+- `VITE_SUPABASE_ANON_KEY`: Supabase anon (public) key.
+- `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role secret (Required on Vercel for Cron Job bypass and write access).
+
 ## Troubleshooting
 - **Black Screen / Red Error**: Usually caused by malformed files with empty headers. The `mapper.ts` includes defensive checks for `undefined` headers.
 - **No Data in Preview**: Ensure the "Start Row" is set correctly (1-indexed matching Excel row numbers).
