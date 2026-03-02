@@ -527,15 +527,15 @@ function App() {
     if (actualIdx === 3 || actualIdx === 4) return 350; // Names
     if (actualIdx === 7) return 200; // Alias
     if (actualIdx === 16) return 250; // Photo
-    if (actualIdx === 41 || actualIdx === 42) return 400; // Notes (HTML)
+    if (actualIdx === 39 || actualIdx === 40) return 400; // Notes (HTML)
     return 160; // Default
   };
 
   const TABLE_WIDTH = useMemo(() => {
-    // 6 specific widths + 36 default widths (TOTAL 43 columns + 1 ID col)
-    // Indices: 0, 3, 4, 7, 16, 41, 42 are custom. (7 columns)
-    // 43 total columns - 7 custom = 36 default
-    const sum = getColWidth(-1) + getColWidth(0) + getColWidth(3) + getColWidth(4) + getColWidth(7) + getColWidth(16) + getColWidth(41) + getColWidth(42) + (36 * getColWidth(1));
+    // 7 specific data widths + 34 default widths (TOTAL 41 data columns + 1 Actions col)
+    // Indices: 0, 3, 4, 7, 16, 39, 40 are custom. (7 columns)
+    // 41 total columns - 7 custom = 34 default
+    const sum = getColWidth(-1) + getColWidth(0) + getColWidth(3) + getColWidth(4) + getColWidth(7) + getColWidth(16) + getColWidth(39) + getColWidth(40) + (34 * getColWidth(1));
     return `${sum}px`;
   }, []);
 

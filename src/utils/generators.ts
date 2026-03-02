@@ -52,6 +52,91 @@ const translationCache: Record<string, string> = {
     'акумулятор': 'аккумулятор'
 };
 
+// Cache for AI-generated descriptions
+const descriptionCache: Record<string, string> = {};
+
+/**
+ * Generates a template-based description as a fallback.
+ */
+const generateTemplateDescription = (name: string, brand?: string): string => {
+    const brandPart = brand ? ` от ${brand}` : '';
+    return `${name}${brandPart}. Высокое качество и надёжность. Идеальное решение для профессионального использования. Полные характеристики уточняйте у менеджера.`;
+};
+
+/**
+ * Generates product descriptions in batch using Google Gemini AI.
+ * Sends up to 20 products per request for efficiency.
+ * Returns a Map of product name -> description (RU).
+ */
+export const generateDescriptionsBatch = async (
+    products: { name: string; brand?: string; sku?: string }[]
+): Promise<Map<string, string>> => {
+    const resultMap = new Map<string, string>();
+
+    if (products.length === 0) return resultMap;
+
+    // Separate cached and uncached products
+    const uncached: { name: string; brand?: string; sku?: string }[] = [];
+    for (const p of products) {
+        const cacheKey = `desc:${p.name}`;
+        if (descriptionCache[cacheKey]) {
+            resultMap.set(p.name, descriptionCache[cacheKey]);
+        } else {
+            uncached.push(p);
+        }
+    }
+
+    if (uncached.length === 0) return resultMap;
+
+    // Process in chunks of 20
+    const CHUNK_SIZE = 20;
+    for (let i = 0; i < uncached.length; i += CHUNK_SIZE) {
+        const chunk = uncached.slice(i, i + CHUNK_SIZE);
+        try {
+            const apiBase = import.meta.env.DEV ? '' : '';
+            const resp = await fetch(`${apiBase}/api/generate-description`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ products: chunk }),
+            });
+
+            if (!resp.ok) {
+                throw new Error(`API returned ${resp.status}`);
+            }
+
+            const data = await resp.json();
+            if (data.descriptions && Array.isArray(data.descriptions)) {
+                for (const item of data.descriptions) {
+                    if (item.description) {
+                        const cacheKey = `desc:${item.name}`;
+                        descriptionCache[cacheKey] = item.description;
+                        resultMap.set(item.name, item.description);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`Description batch generation failed for chunk ${i / CHUNK_SIZE + 1}:`, error);
+            // Fallback to template for this chunk
+            for (const p of chunk) {
+                const fallback = generateTemplateDescription(p.name, p.brand);
+                const cacheKey = `desc:${p.name}`;
+                descriptionCache[cacheKey] = fallback;
+                resultMap.set(p.name, fallback);
+            }
+        }
+    }
+
+    // Fill any remaining products that didn't get a description with template
+    for (const p of products) {
+        if (!resultMap.has(p.name)) {
+            const fallback = generateTemplateDescription(p.name, p.brand);
+            resultMap.set(p.name, fallback);
+        }
+    }
+
+    return resultMap;
+};
+
 /**
  * Specialized translation function that uses an external library.
  * It translates Russian text to Ukrainian.
