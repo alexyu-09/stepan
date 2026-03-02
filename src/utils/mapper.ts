@@ -70,11 +70,10 @@ export const mapToSchema = async (rawRows: RawRow[], skuPrefix: string): Promise
             // Column AF: Состояние товара - Index 30
             newRow[30] = 'Новое';
 
-            // Default Notes (HTML)
-            // Index 42: Примітки(RU)
-            newRow[42] = `<p><span style="background-color:#f1c40f;">От 50-100 шт спец цена&nbsp;</span><br /><br /><span style="background-color:#f1c40f;">Достпна оплата по безналу</span></p><p><span style="background-color:#f1c40f;">Для больших заказов - оптовые цены и наличие уточняте у менеджера.</span></p>`;
-            // Index 43: Примітки(UA)
-            newRow[43] = `<p><span style="background-color:#f1c40f;">Від 50-100 шт спец ціна</span></p><p><span style="background-color:#f1c40f;">Достпна оплата по безготівці</span></p><p><span style="background-color:#f1c40f;">Для великих замовлень &ndash; оптові ціни та наявність уточнюйте у менеджера.</span></p>`;
+            // Index 41: Примітки(RU)
+            newRow[41] = `<p><span style="background-color:#f1c40f;">От 50-100 шт спец цена&nbsp;</span><br /><br /><span style="background-color:#f1c40f;">Достпна оплата по безналу</span></p><p><span style="background-color:#f1c40f;">Для больших заказов - оптовые цены и наличие уточняте у менеджера.</span></p>`;
+            // Index 42: Примітки(UA)
+            newRow[42] = `<p><span style="background-color:#f1c40f;">Від 50-100 шт спец ціна</span></p><p><span style="background-color:#f1c40f;">Достпна оплата по безготівці</span></p><p><span style="background-color:#f1c40f;">Для великих замовлень &ndash; оптові ціни та наявність уточнюйте у менеджера.</span></p>`;
         }
 
         // Try to map price and brand

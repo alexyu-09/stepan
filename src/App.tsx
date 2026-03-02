@@ -526,16 +526,16 @@ function App() {
     if (actualIdx === 0) return 180; // SKU
     if (actualIdx === 3 || actualIdx === 4) return 350; // Names
     if (actualIdx === 7) return 200; // Alias
-    if (actualIdx === 17) return 250; // Photo
-    if (actualIdx === 42 || actualIdx === 43) return 400; // Notes (HTML)
+    if (actualIdx === 16) return 250; // Photo
+    if (actualIdx === 41 || actualIdx === 42) return 400; // Notes (HTML)
     return 160; // Default
   };
 
   const TABLE_WIDTH = useMemo(() => {
-    // 6 specific widths + 37 default widths (TOTAL 44 columns + 1 ID col)
-    // Indices: 0, 3, 4, 7, 17, 42, 43 are custom. (7 columns)
-    // 44 total columns - 7 custom = 37 default
-    const sum = getColWidth(-1) + getColWidth(0) + getColWidth(3) + getColWidth(4) + getColWidth(7) + getColWidth(17) + getColWidth(42) + getColWidth(43) + (37 * getColWidth(1));
+    // 6 specific widths + 36 default widths (TOTAL 43 columns + 1 ID col)
+    // Indices: 0, 3, 4, 7, 16, 41, 42 are custom. (7 columns)
+    // 43 total columns - 7 custom = 36 default
+    const sum = getColWidth(-1) + getColWidth(0) + getColWidth(3) + getColWidth(4) + getColWidth(7) + getColWidth(16) + getColWidth(41) + getColWidth(42) + (36 * getColWidth(1));
     return `${sum}px`;
   }, []);
 
@@ -1164,8 +1164,14 @@ function App() {
                             <button
                               className="btn-icon"
                               onClick={() => setSearchModal({ open: true, query: name || sku, sku, rowIndex })}
-                              title="Search photo"
-                              style={{ padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}
+                              title={savedImages.some(img => img.sku === sku) ? "Фото уже сохранено" : "Поиск фото"}
+                              style={{
+                                padding: '4px',
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: savedImages.some(img => img.sku === sku) ? 'var(--success)' : 'var(--primary)'
+                              }}
                             >
                               <Search size={16} />
                             </button>
@@ -1213,8 +1219,8 @@ function App() {
             query={searchModal.query}
             sku={searchModal.sku}
             onApprove={(url: string) => {
-              // Update the Photo column (index 17) with the SKU name
-              updateCell(searchModal.rowIndex, 17, `${searchModal.sku}.jpg`);
+              // Update the Photo column (index 16) with the SKU name
+              updateCell(searchModal.rowIndex, 16, `${searchModal.sku}.jpg`);
               // Save the image for download
               addSavedImage(searchModal.sku, url);
             }}
