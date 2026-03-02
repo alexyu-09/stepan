@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Upload, FileText, Download, Trash2, AlertCircle, Settings, Table as TableIcon, Layers, Globe, Search, Edit2, Check, X, History as HistoryIcon, Save, Clock, Calendar } from 'lucide-react';
+import { Upload, FileText, Download, Trash2, AlertCircle, Settings, Table as TableIcon, Layers, Globe, Search, Edit2, Check, X, History as HistoryIcon, Save, Clock, Calendar, Image, Package, CheckCircle2, Loader2 } from 'lucide-react';
 import { useFileProcessing, type ColumnMap } from './hooks/useFileProcessing';
 import { MOCK_DATA } from './constants/mockData';
 import { CATEGORIES } from './constants/categories';
@@ -163,6 +163,14 @@ const EditableCell = ({ value, onSave, className, isSku, isAlias, options, style
   );
 };
 
+type SavedImage = {
+  sku: string;
+  filename: string;
+  url: string;
+  blobUrl: string;
+  timestamp: number;
+};
+
 const ImageSearchModal = ({ isOpen, onClose, query, sku, onApprove }: {
   isOpen: boolean,
   onClose: () => void,
@@ -170,83 +178,263 @@ const ImageSearchModal = ({ isOpen, onClose, query, sku, onApprove }: {
   sku: string,
   onApprove: (url: string) => void
 }) => {
-  const [imgUrl, setImgUrl] = useState('');
-  const [previewUrl, setPreviewUrl] = useState('');
+  const [images, setImages] = useState<{ url: string; thumbnail: string; title: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [manualUrl, setManualUrl] = useState('');
+  const [showManual, setShowManual] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen && query) {
+      searchImages();
+    }
+    return () => {
+      setImages([]);
+      setSelectedIndex(null);
+      setError('');
+      setShowManual(false);
+      setManualUrl('');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, query]);
 
-  const handleSearch = () => {
-    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`, '_blank');
+  const searchImages = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Try API endpoint first (works on Vercel deployment)
+      const apiBase = import.meta.env.DEV ? '' : '';
+      const resp = await fetch(`${apiBase}/api/search-images?q=${encodeURIComponent(query)}`);
+      if (!resp.ok) throw new Error(`API returned ${resp.status}`);
+      const data = await resp.json();
+      if (data.images && data.images.length > 0) {
+        setImages(data.images.slice(0, 8));
+      } else {
+        setError('Изображения не найдены. Попробуйте вставить URL вручную.');
+        setShowManual(true);
+      }
+    } catch (err: any) {
+      console.error('Image search failed:', err);
+      setError('Не удалось загрузить изображения. Используйте ручной ввод URL или Google Поиск.');
+      setShowManual(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleApprove = () => {
-    if (previewUrl) {
-      onApprove(imgUrl); // Pass the original URL as source
+  const handleSelectImage = async (img: { url: string; thumbnail: string }, index: number) => {
+    setSelectedIndex(index);
+    setSaving(true);
+    try {
+      onApprove(img.url);
+      // Small delay for visual feedback
+      await new Promise(r => setTimeout(r, 400));
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleManualApprove = () => {
+    if (manualUrl.trim()) {
+      onApprove(manualUrl.trim());
       onClose();
     }
   };
 
+  const handleGoogleSearch = () => {
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`, '_blank');
+  };
+
+  if (!isOpen) return null;
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '720px', width: '95%' }}>
+        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ background: 'var(--primary)', padding: '6px', borderRadius: '6px' }}>
-              <Layers size={18} color="#fff" />
+            <div style={{ background: 'linear-gradient(135deg, var(--primary), #7c3aed)', padding: '8px', borderRadius: '10px' }}>
+              <Image size={20} color="#fff" />
             </div>
-            <h3 style={{ margin: 0 }}>Назначить фото товара</h3>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Назначить фото товара</h3>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Выберите изображение для сохранения</div>
+            </div>
           </div>
-          <button className="btn-icon" onClick={onClose} style={{ color: 'var(--text-secondary)' }}><X size={20} /></button>
+          <button className="btn-icon" onClick={onClose} style={{ color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
         </div>
 
-        <div className="input-group">
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Артикул (Имя файла)</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)' }}>{sku}.jpg</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.75rem', marginBottom: '0.25rem' }}>Поисковый запрос</div>
-            <div style={{ fontSize: '0.9rem', color: '#fff' }}>{query}</div>
+        {/* Info block */}
+        <div style={{
+          background: 'rgba(255,255,255,0.03)',
+          padding: '0.75rem 1rem',
+          borderRadius: '10px',
+          marginBottom: '1.25rem',
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          gap: '1.5rem',
+          alignItems: 'center'
+        }}>
+          <div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Файл</div>
+            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--accent)' }}>{sku}.jpg</div>
           </div>
-
-          <button className="btn btn-secondary" onClick={handleSearch} style={{ width: '100%', marginBottom: '1.5rem', height: '45px' }}>
-            <Search size={18} /> Искать в Google Картинках
-          </button>
-
-          <label className="input-label">Вставьте URL изображения (прямая ссылка)</label>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input
-              type="text"
-              className="input-field"
-              placeholder="https://example.com/image.jpg"
-              value={imgUrl}
-              onChange={(e) => setImgUrl(e.target.value)}
-            />
-            <button className="btn btn-primary" onClick={() => setPreviewUrl(imgUrl)}>Превью</button>
+          <div style={{ width: '1px', height: '30px', background: 'var(--border-color)' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Запрос</div>
+            <div style={{ fontSize: '0.85rem', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{query}</div>
           </div>
         </div>
 
-        {previewUrl && (
-          <div className="fade-in" style={{ marginTop: '1.5rem' }}>
+        {/* Loading State */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+            <Loader2 size={36} className="spin-icon" style={{ color: 'var(--primary)', marginBottom: '1rem' }} />
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Поиск изображений...</div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && !loading && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.08)',
+            padding: '1rem',
+            borderRadius: '10px',
+            color: 'var(--text-secondary)',
+            marginBottom: '1rem',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <AlertCircle size={18} color="var(--error)" />
+            {error}
+          </div>
+        )}
+
+        {/* Image Grid */}
+        {!loading && images.length > 0 && (
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', fontWeight: 600 }}>
+              Найдено {images.length} изображений — нажмите для сохранения:
+            </div>
             <div style={{
-              border: '1px solid var(--border-color)',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              background: '#000',
-              marginBottom: '1rem',
-              height: '250px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: '0.75rem'
             }}>
-              <img src={previewUrl} alt="Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              {images.map((img, i) => (
+                <div
+                  key={i}
+                  onClick={() => !saving && handleSelectImage(img, i)}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: selectedIndex === i ? '3px solid var(--success)' : '2px solid var(--border-color)',
+                    cursor: saving ? 'wait' : 'pointer',
+                    background: '#000',
+                    transition: 'all 0.2s ease',
+                    boxShadow: selectedIndex === i ? '0 0 20px rgba(16, 185, 129, 0.3)' : 'none',
+                    transform: selectedIndex === i ? 'scale(0.95)' : 'scale(1)',
+                  }}
+                  onMouseEnter={(e) => { if (selectedIndex !== i) e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.transform = 'scale(1.03)'; }}
+                  onMouseLeave={(e) => { if (selectedIndex !== i) e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = selectedIndex === i ? 'scale(0.95)' : 'scale(1)'; }}
+                >
+                  <img
+                    src={img.thumbnail || img.url}
+                    alt={img.title || `Результат ${i + 1}`}
+                    loading="lazy"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  {selectedIndex === i && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'rgba(16, 185, 129, 0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      {saving ? <Loader2 size={28} className="spin-icon" color="#fff" /> : <CheckCircle2 size={32} color="#fff" />}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
+          </div>
+        )}
 
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem', wordBreak: 'break-all', opacity: 0.7 }}>
-              <strong>Источник:</strong> {imgUrl}
-            </div>
-
-            <button className="btn btn-primary" onClick={handleApprove} style={{ width: '100%', background: 'var(--success)', height: '48px', fontSize: '1rem' }}>
-              <Check size={20} /> Одобрить и сохранить как {sku}.jpg
+        {/* Action buttons */}
+        {!loading && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: showManual ? '1rem' : 0 }}>
+            <button
+              className="btn btn-secondary"
+              onClick={handleGoogleSearch}
+              style={{ flex: 1, padding: '10px', fontSize: '0.8rem' }}
+            >
+              <Search size={16} /> Google Картинки
             </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowManual(!showManual)}
+              style={{ flex: 1, padding: '10px', fontSize: '0.8rem', background: showManual ? 'rgba(81, 90, 218, 0.15)' : undefined }}
+            >
+              <Edit2 size={16} /> Вставить URL
+            </button>
+            {images.length > 0 && (
+              <button
+                className="btn btn-secondary"
+                onClick={searchImages}
+                style={{ padding: '10px', fontSize: '0.8rem' }}
+                title="Искать заново"
+              >
+                <Search size={16} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Manual URL input (collapsible) */}
+        {showManual && !loading && (
+          <div className="fade-in" style={{
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '10px',
+            padding: '1rem',
+          }}>
+            <label className="input-label" style={{ fontSize: '0.8rem' }}>Прямая ссылка на изображение</label>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input
+                type="text"
+                className="input-field"
+                placeholder="https://example.com/image.jpg"
+                value={manualUrl}
+                onChange={(e) => setManualUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleManualApprove()}
+                style={{ fontSize: '0.85rem' }}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={handleManualApprove}
+                disabled={!manualUrl.trim()}
+                style={{ whiteSpace: 'nowrap', padding: '8px 16px' }}
+              >
+                <Check size={16} /> Сохранить
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -273,6 +461,8 @@ function App() {
   const [history, setHistoryItems] = useState<SavedSession[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
+  const [downloadingZip, setDownloadingZip] = useState(false);
 
   const lastProcessedKey = useRef<string>('');
 
@@ -439,6 +629,116 @@ function App() {
     setData(item.data);
     setShowHistory(false);
     setTimeout(() => setIsRestoring(false), 500);
+  };
+
+  // --- Image download helpers ---
+  const fetchImageAsBlob = async (url: string): Promise<Blob> => {
+    // Try proxy endpoint first for CORS bypass
+    try {
+      const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+      const resp = await fetch(proxyUrl);
+      if (resp.ok) return await resp.blob();
+    } catch { /* fall through */ }
+    // Direct fetch fallback
+    const resp = await fetch(url, { mode: 'cors' });
+    return await resp.blob();
+  };
+
+  const addSavedImage = async (sku: string, url: string) => {
+    const filename = `${sku}.jpg`;
+    // Check if already saved (update if so)
+    setSavedImages(prev => {
+      const existing = prev.find(img => img.sku === sku);
+      if (existing) {
+        // Revoke old blob URL to free memory
+        URL.revokeObjectURL(existing.blobUrl);
+      }
+      return prev.filter(img => img.sku !== sku);
+    });
+
+    try {
+      const blob = await fetchImageAsBlob(url);
+      const blobUrl = URL.createObjectURL(blob);
+      setSavedImages(prev => [...prev, { sku, filename, url, blobUrl, timestamp: Date.now() }]);
+    } catch (err) {
+      console.error('Failed to fetch image for save:', err);
+      // Still add it with the original URL as a fallback
+      setSavedImages(prev => [...prev, { sku, filename, url, blobUrl: url, timestamp: Date.now() }]);
+    }
+  };
+
+  const downloadSingleImage = async (img: SavedImage) => {
+    try {
+      let blob: Blob;
+      if (img.blobUrl.startsWith('blob:')) {
+        const resp = await fetch(img.blobUrl);
+        blob = await resp.blob();
+      } else {
+        blob = await fetchImageAsBlob(img.url);
+      }
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = img.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error('Download failed:', err);
+      // Fallback: open in new tab
+      window.open(img.url, '_blank');
+    }
+  };
+
+  const downloadAllAsZip = async () => {
+    if (savedImages.length === 0) return;
+    setDownloadingZip(true);
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const folder = zip.folder('product-images');
+
+      for (const img of savedImages) {
+        try {
+          let blob: Blob;
+          if (img.blobUrl.startsWith('blob:')) {
+            const resp = await fetch(img.blobUrl);
+            blob = await resp.blob();
+          } else {
+            blob = await fetchImageAsBlob(img.url);
+          }
+          folder!.file(img.filename, blob);
+        } catch (err) {
+          console.error(`Failed to add ${img.filename} to zip:`, err);
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(zipBlob);
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0];
+      link.download = `product-images_${dateStr}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (err) {
+      console.error('ZIP creation failed:', err);
+      alert('Ошибка при создании архива');
+    } finally {
+      setDownloadingZip(false);
+    }
+  };
+
+  const removeSavedImage = (sku: string) => {
+    setSavedImages(prev => {
+      const img = prev.find(i => i.sku === sku);
+      if (img && img.blobUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(img.blobUrl);
+      }
+      return prev.filter(i => i.sku !== sku);
+    });
   };
 
   // Preview of headers based on current startRow
@@ -912,9 +1212,11 @@ function App() {
             onClose={() => setSearchModal(null)}
             query={searchModal.query}
             sku={searchModal.sku}
-            onApprove={() => {
-              // Update the Photo column (index 17) with the SKU name as requested
+            onApprove={(url: string) => {
+              // Update the Photo column (index 17) with the SKU name
               updateCell(searchModal.rowIndex, 17, `${searchModal.sku}.jpg`);
+              // Save the image for download
+              addSavedImage(searchModal.sku, url);
             }}
           />
         )}
@@ -954,6 +1256,152 @@ function App() {
                 }}>Применить</button>
                 <button className="btn btn-secondary" onClick={() => setBulkEditCol(null)}>Отмена</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Saved Images Gallery */}
+        {savedImages.length > 0 && (
+          <div className="card fade-in" style={{
+            marginTop: '2.5rem',
+            borderTop: '4px solid #7c3aed',
+            background: 'rgba(124, 58, 237, 0.03)',
+            padding: '2rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #7c3aed, var(--primary))', padding: '8px', borderRadius: '10px', display: 'flex' }}>
+                  <Package size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0 }}>Шаг 4: Сохранённые изображения</h3>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    Скачайте отдельно или все сразу в архиве
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span className="tag" style={{ background: 'rgba(124, 58, 237, 0.15)', color: '#a78bfa' }}>
+                  {savedImages.length} {savedImages.length === 1 ? 'файл' : savedImages.length < 5 ? 'файла' : 'файлов'}
+                </span>
+                <button
+                  className="btn btn-primary"
+                  onClick={downloadAllAsZip}
+                  disabled={downloadingZip}
+                  style={{
+                    background: 'linear-gradient(135deg, #7c3aed, var(--primary))',
+                    padding: '10px 20px',
+                    fontSize: '0.85rem',
+                  }}
+                >
+                  {downloadingZip ? (
+                    <><Loader2 size={16} className="spin-icon" /> Создание архива...</>
+                  ) : (
+                    <><Download size={16} /> Скачать все (ZIP)</>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Image Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+              gap: '1rem',
+            }}>
+              {savedImages.map((img) => (
+                <div
+                  key={img.sku}
+                  className="fade-in"
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '14px',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.4)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(124, 58, 237, 0.15)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  {/* Image Preview */}
+                  <div style={{
+                    height: '140px',
+                    background: '#0a0a0a',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}>
+                    <img
+                      src={img.blobUrl}
+                      alt={img.filename}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                      }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).parentElement!.innerHTML = '<div style="color: #666; font-size: 0.8rem;">Не удалось загрузить</div>';
+                      }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      top: '6px',
+                      right: '6px',
+                      background: 'rgba(16, 185, 129, 0.9)',
+                      borderRadius: '50%',
+                      width: '22px',
+                      height: '22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <CheckCircle2 size={14} color="#fff" />
+                    </div>
+                  </div>
+
+                  {/* Info & Actions */}
+                  <div style={{ padding: '0.75rem' }}>
+                    <div style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      color: 'var(--accent)',
+                      marginBottom: '0.5rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {img.filename}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => downloadSingleImage(img)}
+                        style={{ flex: 1, padding: '6px', fontSize: '0.7rem', borderRadius: '8px' }}
+                      >
+                        <Download size={12} /> Скачать
+                      </button>
+                      <button
+                        className="btn-icon"
+                        onClick={() => removeSavedImage(img.sku)}
+                        style={{
+                          padding: '6px',
+                          background: 'transparent',
+                          border: '1px solid rgba(239, 68, 68, 0.2)',
+                          cursor: 'pointer',
+                          color: 'var(--error)',
+                          borderRadius: '8px',
+                        }}
+                        title="Удалить"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

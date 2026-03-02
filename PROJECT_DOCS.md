@@ -40,10 +40,13 @@ Interactive editing directly in the results table:
 - **Category Selection**: The "Category" column (10th column) uses a specialized dropdown menu with values from a centralized registry (`src/constants/categories.ts`).
 - **Bulk Updates**: Pencil icon in the column header allows applying a single value (or choosing from a dropdown if it's the category column) to an entire column.
 
-### 3. Image Search & Assignment
-- **Google Search**: One-click lookup for product images based on the name.
-- **Direct Link Preview**: Users can paste an image URL, preview it, and approve.
-- **Automated Naming**: Approved photos are assigned the name `{SKU}.jpg` and saved in the "Photo" column (index 17).
+### 3. Поиск и Назначение Изображений
+- **Автоматический поиск**: При нажатии 🔍 система автоматически ищет изображения товара через серверный API (`api/search-images.ts`), показывая до 8 результатов в визуальной сетке.
+- **Выбор в один клик**: Нажатие на изображение мгновенно сохраняет его с правильным именем `{SKU}.jpg` и записывает в колонку «Фото» (индекс 17).
+- **Ручной ввод URL**: Возможность вставить прямую ссылку на изображение, если автопоиск не нашёл нужного результата.
+- **Прокси для изображений**: Серверная функция `api/proxy-image.ts` обходит CORS-ограничения при скачивании изображений.
+- **Галерея сохранённых (Шаг 4)**: Все выбранные изображения отображаются в секции «Шаг 4» под обработанными данными. Каждое можно скачать отдельно или нажать «Скачать все (ZIP)» для получения архива всех изображений.
+- **ZIP-архив**: Используется библиотека `jszip` для создания архива `product-images_{дата}.zip` со всеми сохранёнными фотографиями.
 
 ### 4. Session Persistence & History
 - **Auto-save**: All edits are automatically saved to the browser's IndexedDB. Refreshing the page doesn't lose data.
@@ -87,6 +90,8 @@ The application uses a tab-based navigation to switch between the two main modul
 ## API и Серверная часть
 - `api/check-inventory.ts`: Логика облачного автопилота.
 - `api/auth.ts`: Серверная проверка пароля.
+- `api/search-images.ts`: Поиск изображений товаров (DuckDuckGo + Google fallback).
+- `api/proxy-image.ts`: Прокси для скачивания изображений (обход CORS).
 - `vercel.json`: Конфигурация Cron-задач и маршрутизации.
 
 ## Основные файлы
