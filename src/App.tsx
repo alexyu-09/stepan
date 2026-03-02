@@ -1194,7 +1194,17 @@ function App() {
                             <EditableCell
                               key={j}
                               value={cell}
-                              onSave={(val) => updateCell(rowIndex, j, val)}
+                              onSave={(val) => {
+                                // Round Price (index 11) or Old Price (index 12) if they are numbers
+                                if (j === 11 || j === 12) {
+                                  const numeric = typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.').replace(/[^\d.]/g, ''));
+                                  if (!isNaN(numeric)) {
+                                    updateCell(rowIndex, j, Math.round(numeric));
+                                    return;
+                                  }
+                                }
+                                updateCell(rowIndex, j, val);
+                              }}
                               className={`${isNameCol ? 'sticky-name-col' : ''} ${isNameCol || isOtherNameCol ? 'cell-name' : ''}`}
                               isSku={j === 0}
                               isAlias={j === 7}
@@ -1257,7 +1267,14 @@ function App() {
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => {
-                  updateColumn(bulkEditCol.colIndex, bulkValue);
+                  let valToApply: string | number = bulkValue;
+                  if (bulkEditCol.colIndex === 11 || bulkEditCol.colIndex === 12) {
+                    const numeric = typeof bulkValue === 'number' ? bulkValue : parseFloat(String(bulkValue).replace(',', '.').replace(/[^\d.]/g, ''));
+                    if (!isNaN(numeric)) {
+                      valToApply = Math.round(numeric);
+                    }
+                  }
+                  updateColumn(bulkEditCol.colIndex, valToApply);
                   setBulkEditCol(null);
                 }}>Применить</button>
                 <button className="btn btn-secondary" onClick={() => setBulkEditCol(null)}>Отмена</button>

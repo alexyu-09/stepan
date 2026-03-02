@@ -78,8 +78,13 @@ export const mapToSchema = async (rawRows: RawRow[], skuPrefix: string): Promise
 
         // Try to map price and brand
         const mappedPrice = row['__mapped_price'] || (priceKey ? row[priceKey] : undefined);
-        if (mappedPrice) {
-            newRow[11] = mappedPrice; // Index 11: Цена (Price)
+        if (mappedPrice !== undefined && mappedPrice !== '') {
+            const numericPrice = typeof mappedPrice === 'number' ? mappedPrice : parseFloat(String(mappedPrice).replace(',', '.').replace(/[^\d.]/g, ''));
+            if (!isNaN(numericPrice)) {
+                newRow[11] = Math.round(numericPrice); // Index 11: Цена (Price)
+            } else {
+                newRow[11] = mappedPrice;
+            }
         }
 
         const mappedBrand = row['__mapped_brand'] || (brandKey ? row[brandKey] : undefined);
