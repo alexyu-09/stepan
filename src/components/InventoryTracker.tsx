@@ -700,9 +700,14 @@ const InventoryTracker: React.FC = () => {
     }, [trackers, settings]);
 
     const handleAddTracker = async (tracker: TrackedSheet) => {
-        await saveTracker(tracker);
-        setTrackers(prev => [tracker, ...prev]);
-        setShowAddModal(false);
+        try {
+            await saveTracker(tracker);
+            setTrackers(prev => [tracker, ...prev]);
+            setShowAddModal(false);
+        } catch (err: any) {
+            console.error('Failed to add tracker:', err);
+            alert(`Ошибка при добавлении: ${err.message || 'Проверьте настройки Supabase'}`);
+        }
     };
 
     const handleDeleteTracker = async (id: string) => {
@@ -712,8 +717,14 @@ const InventoryTracker: React.FC = () => {
     };
 
     const handleSaveSettings = async (s: TrackerSettings) => {
-        await saveSettings(s);
-        setSettingsState(s);
+        try {
+            await saveSettings(s);
+            setSettingsState(s);
+            alert('Настройки Telegram успешно сохранены!');
+        } catch (err: any) {
+            console.error('Failed to save settings:', err);
+            alert(`Ошибка при сохранении настроек: ${err.message || 'Проверьте ключи Supabase'}`);
+        }
     };
 
     const handleUpdateTracker = (updated: TrackedSheet) => {
