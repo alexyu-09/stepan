@@ -3,10 +3,12 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import InventoryTracker from './components/InventoryTracker.tsx'
+import Auth from './components/Auth.tsx'
 
 type Page = 'converter' | 'tracker';
 
 function Shell() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [page, setPage] = useState<Page>(() => {
     const hash = window.location.hash.replace('#', '');
     return hash === 'tracker' ? 'tracker' : 'converter';
@@ -16,6 +18,10 @@ function Shell() {
     setPage(p);
     window.location.hash = p === 'converter' ? '' : p;
   };
+
+  if (!isAuthenticated) {
+    return <Auth onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <>
