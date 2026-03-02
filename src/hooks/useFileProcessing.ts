@@ -131,13 +131,13 @@ export const useFileProcessing = () => {
             console.log('Mapping complete, resulting rows:', mappedData.length);
 
             if (!mappedData || !Array.isArray(mappedData) || mappedData.length === 0) {
-                throw new Error('Mapping resulted in empty or invalid data');
+                throw new Error('Ошибка: данные после маппинга пусты или неверны');
             }
 
             setData(mappedData);
         } catch (err) {
             console.error('CRITICAL ERROR in processFile:', err);
-            setError(err instanceof Error ? err.message : 'Unknown error during file processing');
+            setError(err instanceof Error ? err.message : 'Неизвестная ошибка при обработке файла');
             setData(null);
         } finally {
             setLoading(false);
@@ -157,7 +157,7 @@ export const useFileProcessing = () => {
             writeFile(workbook, finalFilename);
         } catch (err) {
             console.error('Export failed:', err);
-            setError('Failed to export. Please try again.');
+            setError('Ошибка при экспорте. Пожалуйста, попробуйте еще раз.');
         }
     };
 
@@ -168,7 +168,7 @@ export const useFileProcessing = () => {
         try {
             // Extract sheet ID from URL
             const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-            if (!match) throw new Error('Invalid Google Sheets URL. Please copy the full browser URL.');
+            if (!match) throw new Error('Неверная ссылка Google Sheets. Пожалуйста, скопируйте полную ссылку из браузера.');
 
             const sheetId = match[1];
             // Get GID if specified, otherwise default to first sheet
@@ -178,7 +178,7 @@ export const useFileProcessing = () => {
             const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv${gid}`;
 
             const response = await fetch(exportUrl);
-            if (!response.ok) throw new Error('Could not access the sheet. Make sure "Anyone with the link" has access.');
+            if (!response.ok) throw new Error('Не удалось получить доступ к таблице. Убедитесь, что доступ по ссылке открыт.');
 
             const csvText = await response.text();
 

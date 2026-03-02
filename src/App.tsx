@@ -22,7 +22,7 @@ const HistoryModal = ({ isOpen, onClose, items, onRestore, onDelete }: {
             <div style={{ background: 'var(--primary)', padding: '6px', borderRadius: '6px' }}>
               <HistoryIcon size={18} color="#fff" />
             </div>
-            <h3 style={{ margin: 0 }}>Version History</h3>
+            <h3 style={{ margin: 0 }}>История версий</h3>
           </div>
           <button className="btn-icon" onClick={onClose} style={{ color: 'var(--text-secondary)' }}><X size={20} /></button>
         </div>
@@ -31,7 +31,7 @@ const HistoryModal = ({ isOpen, onClose, items, onRestore, onDelete }: {
           {items.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-secondary)' }}>
               <Clock size={40} style={{ marginBottom: '1rem', opacity: 0.2 }} />
-              <p>No saved versions found.</p>
+              <p>Сохраненные версии не найдены.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -45,12 +45,12 @@ const HistoryModal = ({ isOpen, onClose, items, onRestore, onDelete }: {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Calendar size={12} />
                       {new Date(item.timestamp).toLocaleString()}
-                      <span className="tag" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{item.data.length - 1} rows</span>
+                      <span className="tag" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>{item.data.length - 1} строк</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button className="btn btn-primary" onClick={() => onRestore(item)} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                      Restore
+                      Восстановить
                     </button>
                     <button className="btn-icon" onClick={() => onDelete(item.id)} style={{ color: 'var(--error)' }}>
                       <Trash2 size={16} />
@@ -119,7 +119,7 @@ const EditableCell = ({ value, onSave, className, isSku, isAlias, options, style
             onKeyDown={handleKeyDown}
             style={{ height: '100%', borderRadius: '0' }}
           >
-            <option value="">-- Select Category --</option>
+            <option value="">-- Выберите категорию --</option>
             {options.map((opt, i) => (
               <option key={i} value={opt}>{opt}</option>
             ))}
@@ -148,7 +148,7 @@ const EditableCell = ({ value, onSave, className, isSku, isAlias, options, style
       onClick={() => setIsEditing(true)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      title="Click to edit"
+      title="Нажмите для редактирования"
       style={{ ...style, cursor: 'pointer', position: 'relative' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.4rem', height: '100%' }}>
@@ -194,24 +194,24 @@ const ImageSearchModal = ({ isOpen, onClose, query, sku, onApprove }: {
             <div style={{ background: 'var(--primary)', padding: '6px', borderRadius: '6px' }}>
               <Layers size={18} color="#fff" />
             </div>
-            <h3 style={{ margin: 0 }}>Assign Product Photo</h3>
+            <h3 style={{ margin: 0 }}>Назначить фото товара</h3>
           </div>
           <button className="btn-icon" onClick={onClose} style={{ color: 'var(--text-secondary)' }}><X size={20} /></button>
         </div>
 
         <div className="input-group">
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>SKU (Target Filename)</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Артикул (Имя файла)</div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--accent)' }}>{sku}.jpg</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.75rem', marginBottom: '0.25rem' }}>Search Query</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.75rem', marginBottom: '0.25rem' }}>Поисковый запрос</div>
             <div style={{ fontSize: '0.9rem', color: '#fff' }}>{query}</div>
           </div>
 
           <button className="btn btn-secondary" onClick={handleSearch} style={{ width: '100%', marginBottom: '1.5rem', height: '45px' }}>
-            <Search size={18} /> Search on Google Images
+            <Search size={18} /> Искать в Google Картинках
           </button>
 
-          <label className="input-label">Paste Image URL (Direct Link)</label>
+          <label className="input-label">Вставьте URL изображения (прямая ссылка)</label>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <input
               type="text"
@@ -220,7 +220,7 @@ const ImageSearchModal = ({ isOpen, onClose, query, sku, onApprove }: {
               value={imgUrl}
               onChange={(e) => setImgUrl(e.target.value)}
             />
-            <button className="btn btn-primary" onClick={() => setPreviewUrl(imgUrl)}>Preview</button>
+            <button className="btn btn-primary" onClick={() => setPreviewUrl(imgUrl)}>Превью</button>
           </div>
         </div>
 
@@ -241,11 +241,11 @@ const ImageSearchModal = ({ isOpen, onClose, query, sku, onApprove }: {
             </div>
 
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem', wordBreak: 'break-all', opacity: 0.7 }}>
-              <strong>Source:</strong> {imgUrl}
+              <strong>Источник:</strong> {imgUrl}
             </div>
 
             <button className="btn btn-primary" onClick={handleApprove} style={{ width: '100%', background: 'var(--success)', height: '48px', fontSize: '1rem' }}>
-              <Check size={20} /> Approve & Save as {sku}.jpg
+              <Check size={20} /> Одобрить и сохранить как {sku}.jpg
             </button>
           </div>
         )}
@@ -423,11 +423,11 @@ function App() {
       mapping,
       skuPrefix,
       startRow,
-      filename: file?.name || 'Price Export',
+      filename: file?.name || 'Экспорт_Прайса',
       timestamp: Date.now()
     });
     loadHistoryList();
-    alert('Progress saved to history!');
+    alert('Результат сохранен в историю!');
   };
 
   const restoreFromHistory = (item: SavedSession) => {
@@ -451,12 +451,12 @@ function App() {
     <div className="container fade-in">
       <header className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '0.5rem' }}>
-          <h1 style={{ fontSize: '1.8rem' }}>Price Converter</h1>
+          <h1 style={{ fontSize: '1.8rem' }}>Конвертер Прайсов</h1>
           <button className="btn btn-secondary" onClick={() => setShowHistory(true)} style={{ background: 'rgba(255,255,255,0.05)' }}>
-            <HistoryIcon size={18} /> History
+            <HistoryIcon size={18} /> История
           </button>
         </div>
-        <p>Convert raw data into optimized price lists with automated SKU & Alias generation.</p>
+        <p>Конвертация сырых данных в оптимизированные прайс-листы с автогенерацией SKU и Алиасов.</p>
       </header>
 
       <div className="grid">
@@ -466,7 +466,7 @@ function App() {
             <div style={{ background: 'var(--primary)', padding: '8px', borderRadius: '8px', display: 'flex' }}>
               <Upload size={20} color="#fff" />
             </div>
-            <h3 style={{ margin: 0 }}>1. Upload Raw File</h3>
+            <h3 style={{ margin: 0 }}>1. Загрузка файла</h3>
           </div>
 
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '10px', marginBottom: '1.5rem' }}>
@@ -475,14 +475,14 @@ function App() {
               onClick={() => setImportMethod('file')}
               style={{ flex: 1, padding: '8px', fontSize: '0.85rem', boxShadow: 'none', background: importMethod === 'file' ? '' : 'transparent' }}
             >
-              <Upload size={14} /> Local File
+              <Upload size={14} /> Выбрать файл
             </button>
             <button
               className={`btn ${importMethod === 'google' ? 'btn-primary' : ''}`}
               onClick={() => setImportMethod('google')}
               style={{ flex: 1, padding: '8px', fontSize: '0.85rem', boxShadow: 'none', background: importMethod === 'google' ? '' : 'transparent' }}
             >
-              <Globe size={14} /> Google Sheets
+              <Globe size={14} /> Google Таблицы
             </button>
           </div>
 
@@ -505,20 +505,20 @@ function App() {
                 <div className="fade-in">
                   <FileText size={48} color="var(--primary)" style={{ marginBottom: '1rem' }} />
                   <div style={{ fontWeight: 600 }}>{file.name}</div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Click to change file</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Нажмите, чтобы заменить файл</div>
                 </div>
               ) : (
                 <div>
                   <Upload size={48} color="var(--text-secondary)" style={{ marginBottom: '1rem' }} />
-                  <div style={{ fontWeight: 600 }}>Drop file here</div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Excel or CSV</div>
+                  <div style={{ fontWeight: 600 }}>Перетащите файл сюда</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Excel или CSV</div>
                 </div>
               )}
             </div>
           ) : (
             <div className="fade-in" style={{ marginBottom: '1.5rem' }}>
               <div className="input-group">
-                <label className="input-label">Spreadsheet URL</label>
+                <label className="input-label">Ссылка на таблицу</label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
                     type="text"
@@ -528,11 +528,11 @@ function App() {
                     onChange={(e) => setSheetUrl(e.target.value)}
                   />
                   <button className="btn btn-primary" onClick={handleSheetImport} disabled={!sheetUrl}>
-                    Load
+                    Загрузить
                   </button>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                  Make sure the sheet is public (Anyone with the link can view).
+                  Убедитесь, что таблица доступна по ссылке (Anyone with the link can view).
                 </p>
               </div>
             </div>
@@ -550,14 +550,14 @@ function App() {
           {data && (
             <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', flexDirection: 'column' }}>
               <button className="btn btn-primary" onClick={handleExport} style={{ width: '100%' }}>
-                <Download size={18} /> Download Excel
+                <Download size={18} /> Скачать Excel
               </button>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button className="btn btn-secondary" onClick={saveToHistory} style={{ flex: 1 }}>
-                  <Save size={18} /> Save Copy
+                  <Save size={18} /> Сохранить в историю
                 </button>
                 <button className="btn btn-secondary" onClick={handleReset} style={{ color: 'var(--error)' }}>
-                  <Trash2 size={18} /> Clear
+                  <Trash2 size={18} /> Очистить
                 </button>
               </div>
             </div>
@@ -570,18 +570,18 @@ function App() {
             <div style={{ background: 'var(--accent)', padding: '8px', borderRadius: '8px', display: 'flex' }}>
               <Settings size={20} color="#fff" />
             </div>
-            <h3 style={{ margin: 0 }}>2. Column Mapping</h3>
-            {loading && <div className="tag" style={{ background: 'var(--primary)', marginLeft: 'auto' }}>Processing...</div>}
+            <h3 style={{ margin: 0 }}>2. Маппинг колонок</h3>
+            {loading && <div className="tag" style={{ background: 'var(--primary)', marginLeft: 'auto' }}>Обработка...</div>}
           </div>
 
           {!rawRows ? (
             <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
-              Upload a file first to configure mapping.
+              Сначала загрузите файл для настройки маппинга.
             </div>
           ) : (
             <div className="fade-in">
               <div className="input-group">
-                <label className="input-label">Data begins at row (Header row)</label>
+                <label className="input-label">Данные начинаются со строки (Заголовок)</label>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                   <input
                     type="number"
@@ -596,13 +596,13 @@ function App() {
                     style={{ width: '80px' }}
                   />
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    User suggested row 24 for this file.
+                    Для этого файла рекомендуется строка 24.
                   </span>
                 </div>
               </div>
 
               <div className="input-group">
-                <label className="input-label">Product Name Column (required)</label>
+                <label className="input-label">Название колонки: "Наименование" (обязательно)</label>
                 <select
                   className="input-field"
                   value={mapping.name}
@@ -610,14 +610,14 @@ function App() {
                 >
                   {currentHeaders.map((header, i) => (
                     <option key={i} value={i}>
-                      Col {i + 1}: {header ? String(header).slice(0, 30) : `(Empty)`}
+                      Кол {i + 1}: {header ? String(header).slice(0, 30) : `(Пусто)`}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="input-group">
-                <label className="input-label">Target Language for Mapping</label>
+                <label className="input-label">Целевой язык для маппинга</label>
                 <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                     <input
@@ -626,7 +626,7 @@ function App() {
                       checked={mapping.targetName === 'RU'}
                       onChange={() => setMapping({ ...mapping, targetName: 'RU' })}
                     />
-                    Russian (RU)
+                    Русский (RU)
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
                     <input
@@ -635,38 +635,38 @@ function App() {
                       checked={mapping.targetName === 'UA'}
                       onChange={() => setMapping({ ...mapping, targetName: 'UA' })}
                     />
-                    Ukrainian (UA)
+                    Украинский (UA)
                   </label>
                 </div>
               </div>
 
               <div className="input-group">
-                <label className="input-label">Price Column (optional)</label>
+                <label className="input-label">Колонка "Цена" (опционально)</label>
                 <select
                   className="input-field"
                   value={mapping.price}
                   onChange={(e) => setMapping({ ...mapping, price: e.target.value === "" ? undefined : parseInt(e.target.value) })}
                 >
-                  <option value="">Auto-detect</option>
+                  <option value="">Авто-определение</option>
                   {currentHeaders.map((header, i) => (
                     <option key={i} value={i}>
-                      Col {i + 1}: {header ? String(header).slice(0, 30) : `(Empty)`}
+                      Кол {i + 1}: {header ? String(header).slice(0, 30) : `(Пусто)`}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="input-group">
-                <label className="input-label">Brand/Supplier (optional)</label>
+                <label className="input-label">Бренд/Поставщик (опционально)</label>
                 <select
                   className="input-field"
                   value={mapping.brand}
                   onChange={(e) => setMapping({ ...mapping, brand: e.target.value === "" ? undefined : parseInt(e.target.value) })}
                 >
-                  <option value="">Auto-detect</option>
+                  <option value="">Авто-определение</option>
                   {currentHeaders.map((header, i) => (
                     <option key={i} value={i}>
-                      Col {i + 1}: {header ? String(header).slice(0, 30) : `(Empty)`}
+                      Кол {i + 1}: {header ? String(header).slice(0, 30) : `(Пусто)`}
                     </option>
                   ))}
                 </select>
@@ -681,8 +681,8 @@ function App() {
         <div className="card fade-in" style={{ marginTop: '2.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
             <TableIcon size={20} color="var(--text-secondary)" />
-            <h3 style={{ margin: 0 }}>Raw File Integrity Check</h3>
-            <span className="tag" style={{ marginLeft: 'auto' }}>Total {rawRows.length} rows</span>
+            <h3 style={{ margin: 0 }}>Проверка целостности данных</h3>
+            <span className="tag" style={{ marginLeft: 'auto' }}>Всего {rawRows.length} строк</span>
           </div>
           <div className="table-container" style={{ maxHeight: '350px', overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
@@ -701,7 +701,7 @@ function App() {
                         borderBottom: isName ? '2px solid var(--primary)' : 'none',
                         minWidth: '120px'
                       }}>
-                        {isName ? '[PRODUCT NAME SOURCE]' : isPrice ? '[PRICE SOURCE]' : isBrand ? '[BRAND SOURCE]' : `Column ${idx + 1}`}
+                        {isName ? '[ИСТОЧНИК ИМЕНИ]' : isPrice ? '[ИСТОЧНИК ЦЕНЫ]' : isBrand ? '[ИСТОЧНИК БРЕНДА]' : `Колонка ${idx + 1}`}
                       </th>
                     );
                   })}
@@ -720,7 +720,7 @@ function App() {
                       }}>
                         {String(cell || '')}
                       </td>
-                    )) : <td>Not an array</td>}
+                    )) : <td>Это не массив</td>}
                   </tr>
                 ))}
               </tbody>
@@ -741,11 +741,11 @@ function App() {
             <div style={{ background: data ? 'var(--success)' : 'var(--primary)', padding: '8px', borderRadius: '8px', display: 'flex' }}>
               <Layers size={20} color="#fff" />
             </div>
-            <h3 style={{ margin: 0 }}>Step 3: Processed Results (Preview)</h3>
+            <h3 style={{ margin: 0 }}>Шаг 3: Результаты обработки (Превью)</h3>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <div className="input-group" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <label className="input-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>Articul Prefix:</label>
+              <label className="input-label" style={{ marginBottom: 0, whiteSpace: 'nowrap' }}>Префикс Артикула:</label>
               <input
                 type="text"
                 className="input-field"
@@ -755,14 +755,14 @@ function App() {
                 placeholder="S-IV"
               />
             </div>
-            {data && <span className="tag" style={{ background: 'var(--success)', color: '#fff' }}>{data.length - 1} products ready</span>}
+            {data && <span className="tag" style={{ background: 'var(--success)', color: '#fff' }}>{data.length - 1} товаров готово</span>}
           </div>
         </div>
 
         {/* Reference Layout (Mock) */}
         <div style={{ padding: '0 2rem' }}>
           <div className="section-divider">
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', opacity: 0.6 }}>REFERENCE EXAMPLE</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', opacity: 0.6 }}>ЭТАЛОН К СОПОСТАВЛЕНИЮ</span>
           </div>
           <div
             className="table-container"
@@ -819,7 +819,7 @@ function App() {
         {data && Array.isArray(data) && data.length > 0 && (
           <div style={{ padding: '0 2rem' }}>
             <div className="section-divider">
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--success)' }}>YOUR PROCESSED DATA</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--success)' }}>ВАШИ ОБРАБОТАННЫЕ ДАННЫЕ</span>
             </div>
             <div
               className="table-container"
@@ -830,7 +830,7 @@ function App() {
               <table className="fixed-table" style={{ width: TABLE_WIDTH }}>
                 <thead>
                   <tr>
-                    <th style={{ width: getColWidth(-1), minWidth: getColWidth(-1), textAlign: 'center' }}>Actions</th>
+                    <th style={{ width: getColWidth(-1), minWidth: getColWidth(-1), textAlign: 'center' }}>Действия</th>
                     {data && data[0] && data[0].map((header, i) => {
                       const isNameCol = i === 3;
                       const width = getColWidth(i);
@@ -922,7 +922,7 @@ function App() {
         {bulkEditCol && (
           <div className="modal-overlay" onClick={() => setBulkEditCol(null)}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-              <h3>Apply to all: {bulkEditCol.header}</h3>
+              <h3>Применить ко всем: {bulkEditCol.header}</h3>
               <div className="input-group">
                 {bulkEditCol.colIndex === 9 ? (
                   <select
@@ -931,7 +931,7 @@ function App() {
                     onChange={(e) => setBulkValue(e.target.value)}
                     autoFocus
                   >
-                    <option value="">-- Select Category --</option>
+                    <option value="">-- Выберите категорию --</option>
                     {CATEGORIES.map((opt, i) => (
                       <option key={i} value={opt}>{opt}</option>
                     ))}
@@ -940,7 +940,7 @@ function App() {
                   <input
                     type="text"
                     className="input-field"
-                    placeholder="Enter value for all rows"
+                    placeholder="Введите значение для всех строк"
                     value={bulkValue}
                     onChange={(e) => setBulkValue(e.target.value)}
                     autoFocus
@@ -951,8 +951,8 @@ function App() {
                 <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => {
                   updateColumn(bulkEditCol.colIndex, bulkValue);
                   setBulkEditCol(null);
-                }}>Apply</button>
-                <button className="btn btn-secondary" onClick={() => setBulkEditCol(null)}>Cancel</button>
+                }}>Применить</button>
+                <button className="btn btn-secondary" onClick={() => setBulkEditCol(null)}>Отмена</button>
               </div>
             </div>
           </div>
@@ -960,7 +960,7 @@ function App() {
 
         {!data && (
           <div style={{ padding: '0 2rem', marginTop: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic' }}>
-            Upload a file or provide a Google Sheet link to see your data processed here for comparison.
+            Загрузите файл или укажите ссылку на Google Таблицу, чтобы увидеть обработанные данные.
           </div>
         )}
         {showHistory && (

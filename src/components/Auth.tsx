@@ -115,7 +115,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
                     background: 'linear-gradient(to right, #fff, rgba(255,255,255,0.7))',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent'
-                }}>STEPAN LOGIN</h1>
+                }}>СТЕПАН: ВХОД</h1>
                 <p style={{
                     color: 'var(--text-secondary)',
                     fontSize: '0.9rem',
@@ -192,7 +192,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthenticated }) => {
                     color: 'var(--text-secondary)',
                     opacity: 0.6
                 }}>
-                    Protected by Secure Cloud Auth • v1.2
+                    Защищено Secure Cloud Auth • v1.2
                 </div>
             </div>
 

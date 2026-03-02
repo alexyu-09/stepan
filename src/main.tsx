@@ -28,8 +28,8 @@ function Shell() {
       <nav className="main-nav">
         <div className="main-nav-inner">
           <div className="nav-brand">
-            <span className="nav-logo">S</span>
-            STEPAN
+            <span className="nav-logo">С</span>
+            СТЕПАН
           </div>
           <div className="nav-tabs">
             <button
@@ -52,7 +52,7 @@ function Shell() {
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
               Мониторинг
-              <span className="nav-badge">NEW</span>
+              <span className="nav-badge">НОВИНКА</span>
             </button>
           </div>
         </div>

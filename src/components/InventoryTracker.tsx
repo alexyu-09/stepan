@@ -211,7 +211,7 @@ const SettingsModal = ({ isOpen, onClose, settings, onSave }: {
                 </div>
 
                 <div className="input-group">
-                    <label className="input-label">Bot Token</label>
+                    <label className="input-label">Токен бота</label>
                     <input
                         className="input-field"
                         placeholder="123456:ABC-DEF..."
@@ -225,7 +225,7 @@ const SettingsModal = ({ isOpen, onClose, settings, onSave }: {
                 </div>
 
                 <div className="input-group">
-                    <label className="input-label">Chat ID</label>
+                    <label className="input-label">ID чата</label>
                     <input
                         className="input-field"
                         placeholder="-100123456789 или ваш ID"
