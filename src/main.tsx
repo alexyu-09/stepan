@@ -4,14 +4,15 @@ import './index.css'
 import App from './App.tsx'
 import InventoryTracker from './components/InventoryTracker.tsx'
 import Auth from './components/Auth.tsx'
+import FlyteamParser from './components/FlyteamParser.tsx'
 
-type Page = 'converter' | 'tracker';
+type Page = 'converter' | 'tracker' | 'flyteam';
 
 function Shell() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [page, setPage] = useState<Page>(() => {
     const hash = window.location.hash.replace('#', '');
-    return hash === 'tracker' ? 'tracker' : 'converter';
+    return hash === 'tracker' ? 'tracker' : hash === 'flyteam' ? 'flyteam' : 'converter';
   });
 
   const navigate = (p: Page) => {
@@ -52,13 +53,22 @@ function Shell() {
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
               Мониторинг
-              <span className="nav-badge">НОВИНКА</span>
+              <span className="nav-badge">NEW</span>
+            </button>
+            <button
+              className={`nav-tab ${page === 'flyteam' ? 'nav-tab-active' : ''}`}
+              onClick={() => navigate('flyteam')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+              Парсер
             </button>
           </div>
         </div>
       </nav>
       <div className="page-content">
-        {page === 'converter' ? <App /> : <InventoryTracker />}
+        {page === 'converter' ? <App /> : page === 'tracker' ? <InventoryTracker /> : <FlyteamParser />}
       </div>
     </>
   );

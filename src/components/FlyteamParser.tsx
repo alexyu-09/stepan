@@ -1,0 +1,305 @@
+import React, { useState, useEffect } from 'react';
+import { Play, Download, Settings, RefreshCw, AlertCircle, Search, BarChart3, Database } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+interface Category {
+    name: string;
+    url: string;
+}
+
+interface Product {
+    id: string;
+    url: string;
+    category: string;
+    sku: string;
+    name: string;
+    price: string;
+    availability: string;
+    image_url: string;
+    updated_at: string;
+}
+
+interface TrackChange {
+    id: string;
+    url: string;
+    name: string;
+    oldAvailability: string;
+    newAvailability: string;
+    oldPrice: string;
+    newPrice: string;
+}
+
+export default function FlyteamParser() {
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [log, setLog] = useState<string[]>([]);
+
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+    const [changes, setChanges] = useState<TrackChange[]>([]);
+
+    // Load products from DB on mount
+    useEffect(() => {
+        fetchProductsFromDB();
+    }, []);
+
+    const addLog = (msg: string) => {
+        setLog(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev]);
+    };
+
+    const fetchProductsFromDB = async () => {
+        try {
+            setIsLoadingProducts(true);
+            const { data, error } = await supabase
+                .from('flyteam_products')
+                .select('*')
+                .order('updated_at', { ascending: false });
+
+            if (error) throw error;
+            setProducts(data || []);
+        } catch (err: any) {
+            console.error('Error fetching from DB', err);
+        } finally {
+            setIsLoadingProducts(false);
+        }
+    };
+
+    const fetchCategories = async () => {
+        try {
+            setIsLoading(true);
+            addLog('Загрузка категорий...');
+            const res = await fetch('/api/flyteam/parse-categories');
+            const data = await res.json();
+
+            if (data.categories) {
+                setCategories(data.categories);
+                addLog(`Найдено ${data.categories.length} категорий.`);
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (err: any) {
+            addLog(`Ошибка: ${err.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const parseSelectedCategory = async () => {
+        if (!selectedCategory) {
+            addLog('Выберите категорию!');
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const cat = categories.find(c => c.url === selectedCategory);
+            addLog(`Начало сбора товаров из категории: ${cat?.name || selectedCategory}`);
+
+            // 1. Fetch catalog
+            const catalogRes = await fetch('/api/flyteam/parse-catalog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: selectedCategory })
+            });
+            const catalogData = await catalogRes.json();
+
+            if (!catalogData.products) {
+                throw new Error(catalogData.error || 'Failed to fetch catalog');
+            }
+
+            addLog(`Найдено ${catalogData.products.length} товаров на первой странице. Начинаю сбор деталей...`);
+
+            let successCount = 0;
+            // 2. Fetch each product
+            for (const p of catalogData.products) {
+                addLog(`Парсинг: ${p.name}`);
+                const prodRes = await fetch('/api/flyteam/parse-product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: p.url })
+                });
+                const prodData = await prodRes.json();
+
+                if (prodData.product) {
+                    // Save to DB
+                    const dbProduct = {
+                        ...prodData.product,
+                        category: cat?.name || ''
+                    };
+
+                    // Upsert (since URL is UNIQUE, we need an ON CONFLICT logic or just try insert)
+                    const { error: dbErr } = await supabase
+                        .from('flyteam_products')
+                        .upsert(dbProduct, { onConflict: 'url' });
+
+                    if (dbErr) {
+                        addLog(`Ошибка сохранения ${p.name}: ${dbErr.message}`);
+                    } else {
+                        successCount++;
+                    }
+                }
+
+                // Anti-rate limit small delay (Vercel has limits but we are on client)
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            addLog(`Успешно сохранено товаров: ${successCount}`);
+            fetchProductsFromDB();
+        } catch (err: any) {
+            addLog(`Ошибка: ${err.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const trackChanges = async () => {
+        try {
+            setIsLoading(true);
+            setChanges([]);
+            addLog('Запуск проверки наличия...');
+            const res = await fetch('/api/flyteam/track-changes', { method: 'POST' });
+            const data = await res.json();
+
+            if (data.changes) {
+                setChanges(data.changes);
+                addLog(data.message || `Найдено изменений: ${data.changes.length}`);
+                fetchProductsFromDB();
+            } else {
+                throw new Error(data.error || 'Unknown error');
+            }
+        } catch (err: any) {
+            addLog(`Ошибка трекинга: ${err.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="section" style={{ minHeight: '80vh' }}>
+            <div className="section-header">
+                <h2 className="section-title">
+                    <Database size={24} className="text-primary" />
+                    Скрейпер Flyteam
+                </h2>
+                <p className="section-subtitle">Автоматический сбор каталога и синхронизация наличия</p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                {/* Left Column: Actions */}
+                <div className="card">
+                    <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Управление сбором</h3>
+
+                    <div className="action-row" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <button className="btn btn-secondary" onClick={fetchCategories} disabled={isLoading}>
+                            <Search size={16} /> 1. Загрузить категории
+                        </button>
+                    </div>
+
+                    {categories.length > 0 && (
+                        <div className="action-row" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexDirection: 'column' }}>
+                            <select
+                                className="input"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                                <option value="">-- Выберите категорию --</option>
+                                {categories.map(c => (
+                                    <option key={c.url} value={c.url}>{c.name}</option>
+                                ))}
+                            </select>
+                            <button className="btn btn-primary" onClick={parseSelectedCategory} disabled={isLoading || !selectedCategory}>
+                                <Download size={16} /> 2. Собрать товары категории
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="action-row" style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Трекинг в реальном времени</h3>
+                        <button className="btn" style={{ backgroundColor: '#f59e0b', color: '#fff' }} onClick={trackChanges} disabled={isLoading}>
+                            <RefreshCw size={16} /> Отследить изменения (Все товары в БД)
+                        </button>
+                    </div>
+                </div>
+
+                {/* Right Column: Console Log */}
+                <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <h3 style={{ marginBottom: '1rem', fontWeight: 600 }}>Лог операций</h3>
+                    <div className="input" style={{ flexGrow: 1, minHeight: '250px', maxHeight: '400px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '0.9rem', backgroundColor: '#0f172a', padding: '1rem' }}>
+                        {log.length === 0 ? <span style={{ opacity: 0.5 }}>Ожидание действий...</span> : (
+                            log.map((l, idx) => <div key={idx} style={{ marginBottom: '0.5rem', color: l.includes('Ошибка') ? '#ef4444' : '#10b981' }}>{l}</div>)
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {changes.length > 0 && (
+                <div className="card" style={{ marginTop: '2rem', borderLeft: '4px solid #f59e0b' }}>
+                    <h3 style={{ marginBottom: '1rem', fontWeight: 600, color: '#f59e0b' }}>Изменения после проверки:</h3>
+                    <div style={{ display: 'grid', gap: '0.5rem' }}>
+                        {changes.map((c, i) => (
+                            <div key={i} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.9rem' }}>
+                                <strong>{c.name}</strong><br />
+                                <span style={{ color: '#9ca3af' }}>Наличие:</span> <span style={{ textDecoration: 'line-through' }}>{c.oldAvailability || '–'}</span> ➔ <strong style={{ color: '#10b981' }}>{c.newAvailability}</strong>
+                                {c.oldPrice !== c.newPrice && (
+                                    <><br /><span style={{ color: '#9ca3af' }}>Цена:</span> <span style={{ textDecoration: 'line-through' }}>{c.oldPrice || '–'}</span> ➔ <strong style={{ color: '#3b82f6' }}>{c.newPrice}</strong></>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Database Table */}
+            <div className="card" style={{ marginTop: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h3 style={{ fontWeight: 600 }}>База спарсенных товаров ({products.length})</h3>
+                    <button className="btn btn-secondary" onClick={fetchProductsFromDB} disabled={isLoadingProducts}>
+                        <RefreshCw size={14} className={isLoadingProducts ? 'rotating' : ''} /> Обновить БД
+                    </button>
+                </div>
+
+                <div className="table-responsive" style={{ maxHeight: '500px' }}>
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Фото</th>
+                                <th>Артикул</th>
+                                <th>Название</th>
+                                <th>Категория</th>
+                                <th>Наличие</th>
+                                <th>Цена</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {products.length === 0 ? (
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Нет данных в базе</td></tr>
+                            ) : (
+                                products.map((p) => (
+                                    <tr key={p.id}>
+                                        <td>
+                                            {p.image_url ? <img src={p.image_url} alt="img" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} /> : '-'}
+                                        </td>
+                                        <td style={{ opacity: 0.7 }}>{p.sku || '-'}</td>
+                                        <td><a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{p.name}</a></td>
+                                        <td>{p.category || '-'}</td>
+                                        <td>
+                                            <span className={`status-badge ${p.availability.includes('Немає') ? 'status-missing' : 'status-new'}`}>
+                                                {p.availability || 'Неизвестно'}
+                                            </span>
+                                        </td>
+                                        <td style={{ fontWeight: 600 }}>{p.price || '-'}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
