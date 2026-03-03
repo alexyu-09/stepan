@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Play, Download, Settings, RefreshCw, AlertCircle, Search, BarChart3, Database } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, RefreshCw, Search, Database } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
