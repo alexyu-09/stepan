@@ -309,51 +309,82 @@ export default function FlyteamParser() {
             }
 
             {/* Database Table */}
-            <div className="card" style={{ marginTop: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ fontWeight: 600 }}>База спарсенных товаров ({products.length})</h3>
-                    <button className="btn btn-secondary" onClick={fetchProductsFromDB} disabled={isLoadingProducts}>
-                        <RefreshCw size={14} className={isLoadingProducts ? 'rotating' : ''} /> Обновить БД
-                    </button>
+            <div className="card fade-in" style={{
+                marginTop: '2.5rem',
+                borderTop: products.length > 0 ? '4px solid var(--success)' : '4px solid var(--primary)',
+                background: products.length > 0 ? 'rgba(16, 185, 129, 0.05)' : 'rgba(81, 90, 218, 0.03)',
+                padding: '1.5rem 0'
+            }}>
+                <div style={{ padding: '0 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ background: products.length > 0 ? 'var(--success)' : 'var(--primary)', padding: '8px', borderRadius: '8px', display: 'flex' }}>
+                            <Database size={20} color="#fff" />
+                        </div>
+                        <h3 style={{ margin: 0 }}>База спарсенных товаров</h3>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {products.length > 0 && <span className="tag" style={{ background: 'var(--success)', color: '#fff' }}>{products.length} товаров в базе</span>}
+                        <button className="btn btn-secondary" onClick={fetchProductsFromDB} disabled={isLoadingProducts}>
+                            <RefreshCw size={14} className={isLoadingProducts ? 'rotating' : ''} /> Обновить БД
+                        </button>
+                    </div>
                 </div>
 
-                <div className="table-responsive" style={{ maxHeight: '500px' }}>
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Фото</th>
-                                <th>Артикул</th>
-                                <th>Название</th>
-                                <th>Категория</th>
-                                <th>Наличие</th>
-                                <th>Цена</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {products.length === 0 ? (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Нет данных в базе</td></tr>
-                            ) : (
-                                products.map((p) => (
-                                    <tr key={p.id}>
-                                        <td>
-                                            {p.image_url ? <img src={p.image_url} alt="img" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} /> : '-'}
-                                        </td>
-                                        <td style={{ opacity: 0.7 }}>{p.sku || '-'}</td>
-                                        <td><a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{p.name}</a></td>
-                                        <td>{p.category || '-'}</td>
-                                        <td>
-                                            <span className={`status-badge ${p.availability.includes('Немає') ? 'status-missing' : 'status-new'}`}>
-                                                {p.availability || 'Неизвестно'}
-                                            </span>
-                                        </td>
-                                        <td style={{ fontWeight: 600 }}>{p.price || '-'}</td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                <div style={{ padding: '0 2rem' }}>
+                    <div className="section-divider">
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--success)' }}>СОХРАНЕННЫЕ ДАННЫЕ</span>
+                    </div>
+
+                    <div className="table-container" style={{ maxHeight: '500px', overflowX: 'auto' }}>
+                        <table className="fixed-table" style={{ width: '1200px' }}>
+                            <thead>
+                                <tr>
+                                    <th style={{ width: '60px', minWidth: '60px', textAlign: 'center' }}>Фото</th>
+                                    <th style={{ width: '120px', minWidth: '120px' }}>Артикул</th>
+                                    <th className="sticky-name-col" style={{ width: '400px', minWidth: '400px' }}>Название</th>
+                                    <th style={{ width: '150px', minWidth: '150px' }}>Категория</th>
+                                    <th style={{ width: '150px', minWidth: '150px' }}>Наличие</th>
+                                    <th style={{ width: '100px', minWidth: '100px' }}>Цена</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {products.length === 0 ? (
+                                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Нет данных в базе</td></tr>
+                                ) : (
+                                    products.map((p) => (
+                                        <tr key={p.id}>
+                                            <td style={{ textAlign: 'center', width: '60px', minWidth: '60px' }}>
+                                                {p.image_url ? <img src={p.image_url} alt="img" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} /> : '-'}
+                                            </td>
+                                            <td style={{ width: '120px', minWidth: '120px' }}>
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {p.sku ? <span className="tag tag-sku">{p.sku}</span> : '-'}
+                                                </div>
+                                            </td>
+                                            <td className="sticky-name-col cell-name" style={{ width: '400px', minWidth: '400px' }}>
+                                                <a href={p.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{p.name}</a>
+                                            </td>
+                                            <td style={{ width: '150px', minWidth: '150px' }}>
+                                                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {p.category || '-'}
+                                                </div>
+                                            </td>
+                                            <td style={{ width: '150px', minWidth: '150px' }}>
+                                                <span className={`status-badge ${p.availability?.includes('Немає') ? 'status-missing' : 'status-new'}`}>
+                                                    {p.availability || 'Неизвестно'}
+                                                </span>
+                                            </td>
+                                            <td style={{ fontWeight: 600, width: '100px', minWidth: '100px' }}>
+                                                {p.price || '-'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }
