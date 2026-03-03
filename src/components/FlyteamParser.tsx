@@ -100,23 +100,37 @@ export default function FlyteamParser() {
             const cat = categories.find(c => c.url === selectedCategory);
             addLog(`Начало сбора товаров из категории: ${cat?.name || selectedCategory}`);
 
-            // 1. Fetch catalog
-            const catalogRes = await fetch('/api/flyteam/parse-catalog', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: selectedCategory })
-            });
-            const catalogData = await catalogRes.json();
+            let currentUrl = selectedCategory;
+            let allProducts: any[] = [];
+            let pageNum = 1;
 
-            if (!catalogData.products) {
-                throw new Error(catalogData.error || 'Failed to fetch catalog');
+            while (currentUrl) {
+                addLog(`Сбор каталога (страница ${pageNum})...`);
+                const catalogRes = await fetch('/api/flyteam/parse-catalog', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: currentUrl })
+                });
+                const catalogData = await catalogRes.json();
+
+                if (!catalogData.products) {
+                    throw new Error(catalogData.error || 'Failed to fetch catalog');
+                }
+
+                allProducts = [...allProducts, ...catalogData.products];
+                currentUrl = catalogData.nextPage || '';
+                pageNum++;
+
+                if (currentUrl) {
+                    await new Promise(r => setTimeout(r, 300));
+                }
             }
 
-            addLog(`Найдено ${catalogData.products.length} товаров на первой странице. Начинаю сбор деталей...`);
+            addLog(`Найдено ${allProducts.length} товаров во всех страницах. Начинаю сбор деталей...`);
 
             let successCount = 0;
             // 2. Fetch each product
-            for (const p of catalogData.products) {
+            for (const p of allProducts) {
                 addLog(`Парсинг: ${p.name}`);
                 const prodRes = await fetch('/api/flyteam/parse-product', {
                     method: 'POST',

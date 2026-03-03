@@ -41,7 +41,7 @@ export default async function handler(req: any, res: any) {
         // Determine total pages by looking at pagination text if necessary (or just return next page link)
         let nextPage = '';
         $('.pagination li a').each((i, el) => {
-            if ($(el).text().includes('>')) {
+            if ($(el).text().trim() === '>') {
                 nextPage = $(el).attr('href') || '';
             }
         });
