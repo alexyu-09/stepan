@@ -89,49 +89,42 @@ export default function FlyteamParser() {
         }
     };
 
-    const parseSelectedCategory = async () => {
-        if (!selectedCategory) {
-            addLog('Выберите категорию!');
-            return;
-        }
+    const scrapeCategory = async (url: string, categoryName: string) => {
+        addLog(`Начало сбора товаров из: ${categoryName}`);
 
-        try {
-            setIsLoading(true);
-            const cat = categories.find(c => c.url === selectedCategory);
-            addLog(`Начало сбора товаров из категории: ${cat?.name || selectedCategory}`);
+        let currentUrl: string = url;
+        let allProducts: any[] = [];
+        let pageNum = 1;
 
-            let currentUrl = selectedCategory;
-            let allProducts: any[] = [];
-            let pageNum = 1;
+        while (currentUrl) {
+            addLog(`Сбор каталога (страница ${pageNum})...`);
+            const catalogRes = await fetch('/api/flyteam/parse-catalog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: currentUrl })
+            });
+            const catalogData = await catalogRes.json();
 
-            while (currentUrl) {
-                addLog(`Сбор каталога (страница ${pageNum})...`);
-                const catalogRes = await fetch('/api/flyteam/parse-catalog', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: currentUrl })
-                });
-                const catalogData = await catalogRes.json();
-
-                if (!catalogData.products) {
-                    throw new Error(catalogData.error || 'Failed to fetch catalog');
-                }
-
-                allProducts = [...allProducts, ...catalogData.products];
-                currentUrl = catalogData.nextPage || '';
-                pageNum++;
-
-                if (currentUrl) {
-                    await new Promise(r => setTimeout(r, 300));
-                }
+            if (!catalogData.products) {
+                addLog(`Ошибка каталога: ${catalogData.error || 'Unknown'}`);
+                break;
             }
 
-            addLog(`Найдено ${allProducts.length} товаров во всех страницах. Начинаю сбор деталей...`);
+            allProducts = [...allProducts, ...catalogData.products];
+            currentUrl = catalogData.nextPage || '';
+            pageNum++;
 
-            let successCount = 0;
-            // 2. Fetch each product
-            for (const p of allProducts) {
-                addLog(`Парсинг: ${p.name}`);
+            if (currentUrl) {
+                await new Promise(r => setTimeout(r, 400));
+            }
+        }
+
+        addLog(`Найдено ${allProducts.length} товаров. Начинаю детальный сбор...`);
+
+        let successCount = 0;
+        for (const p of allProducts) {
+            addLog(`Парсинг: ${p.name}`);
+            try {
                 const prodRes = await fetch('/api/flyteam/parse-product', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -140,13 +133,11 @@ export default function FlyteamParser() {
                 const prodData = await prodRes.json();
 
                 if (prodData.product) {
-                    // Save to DB
                     const dbProduct = {
                         ...prodData.product,
-                        category: cat?.name || ''
+                        category: categoryName
                     };
 
-                    // Upsert (since URL is UNIQUE, we need an ON CONFLICT logic or just try insert)
                     const { error: dbErr } = await supabase
                         .from('flyteam_products')
                         .upsert(dbProduct, { onConflict: 'url' });
@@ -157,12 +148,50 @@ export default function FlyteamParser() {
                         successCount++;
                     }
                 }
-
-                // Anti-rate limit small delay (Vercel has limits but we are on client)
-                await new Promise(r => setTimeout(r, 500));
+            } catch (err: any) {
+                addLog(`Ошибка на товаре ${p.name}: ${err.message}`);
             }
 
-            addLog(`Успешно сохранено товаров: ${successCount}`);
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        addLog(`Успешно сохранено товаров (${categoryName}): ${successCount}`);
+    };
+
+    const parseSelectedCategory = async () => {
+        if (!selectedCategory) {
+            addLog('Выберите категорию!');
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            const cat = categories.find(c => c.url === selectedCategory);
+            await scrapeCategory(selectedCategory, cat?.name || selectedCategory);
+            fetchProductsFromDB();
+        } catch (err: any) {
+            addLog(`Ошибка: ${err.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const parseAllCategories = async () => {
+        if (categories.length === 0) {
+            addLog('Сначала загрузите категории!');
+            return;
+        }
+
+        if (!confirm('Вы уверены? Это может занять много времени.')) return;
+
+        try {
+            setIsLoading(true);
+            for (const cat of categories) {
+                // Ignore "Все" or parent categories if we want, but letting them run is fine
+                // Actually they might duplicate, upsert handles duplicate urls
+                await scrapeCategory(cat.url, cat.name);
+            }
+            addLog('Сбор по всем категориям завершен!');
             fetchProductsFromDB();
         } catch (err: any) {
             addLog(`Ошибка: ${err.message}`);
@@ -215,21 +244,30 @@ export default function FlyteamParser() {
                     </div>
 
                     {categories.length > 0 && (
-                        <div className="action-row" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexDirection: 'column' }}>
-                            <select
-                                className="input"
-                                value={selectedCategory}
-                                onChange={(e) => setSelectedCategory(e.target.value)}
-                            >
-                                <option value="">-- Выберите категорию --</option>
-                                {categories.map(c => (
-                                    <option key={c.url} value={c.url}>{c.name}</option>
-                                ))}
-                            </select>
-                            <button className="btn btn-primary" onClick={parseSelectedCategory} disabled={isLoading || !selectedCategory}>
-                                <Download size={16} /> 2. Собрать товары категории
-                            </button>
-                        </div>
+                        <>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                <select
+                                    className="input"
+                                    style={{ flexGrow: 1 }}
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                >
+                                    <option value="">-- Выберите категорию --</option>
+                                    {categories.map(c => (
+                                        <option key={c.url} value={c.url}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <button className="btn btn-primary" onClick={parseSelectedCategory} disabled={isLoading || !selectedCategory}>
+                                    <Download size={16} /> Собрать одну
+                                </button>
+                            </div>
+
+                            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
+                                <button className="btn" style={{ backgroundColor: '#2563eb', color: '#fff', width: '100%' }} onClick={parseAllCategories} disabled={isLoading}>
+                                    <Database size={16} /> 3. Выкачать ВСЕ категории
+                                </button>
+                            </div>
+                        </>
                     )}
 
                     <div className="action-row" style={{ marginTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '2rem' }}>
@@ -251,22 +289,24 @@ export default function FlyteamParser() {
                 </div>
             </div>
 
-            {changes.length > 0 && (
-                <div className="card" style={{ marginTop: '2rem', borderLeft: '4px solid #f59e0b' }}>
-                    <h3 style={{ marginBottom: '1rem', fontWeight: 600, color: '#f59e0b' }}>Изменения после проверки:</h3>
-                    <div style={{ display: 'grid', gap: '0.5rem' }}>
-                        {changes.map((c, i) => (
-                            <div key={i} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.9rem' }}>
-                                <strong>{c.name}</strong><br />
-                                <span style={{ color: '#9ca3af' }}>Наличие:</span> <span style={{ textDecoration: 'line-through' }}>{c.oldAvailability || '–'}</span> ➔ <strong style={{ color: '#10b981' }}>{c.newAvailability}</strong>
-                                {c.oldPrice !== c.newPrice && (
-                                    <><br /><span style={{ color: '#9ca3af' }}>Цена:</span> <span style={{ textDecoration: 'line-through' }}>{c.oldPrice || '–'}</span> ➔ <strong style={{ color: '#3b82f6' }}>{c.newPrice}</strong></>
-                                )}
-                            </div>
-                        ))}
+            {
+                changes.length > 0 && (
+                    <div className="card" style={{ marginTop: '2rem', borderLeft: '4px solid #f59e0b' }}>
+                        <h3 style={{ marginBottom: '1rem', fontWeight: 600, color: '#f59e0b' }}>Изменения после проверки:</h3>
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                            {changes.map((c, i) => (
+                                <div key={i} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '0.9rem' }}>
+                                    <strong>{c.name}</strong><br />
+                                    <span style={{ color: '#9ca3af' }}>Наличие:</span> <span style={{ textDecoration: 'line-through' }}>{c.oldAvailability || '–'}</span> ➔ <strong style={{ color: '#10b981' }}>{c.newAvailability}</strong>
+                                    {c.oldPrice !== c.newPrice && (
+                                        <><br /><span style={{ color: '#9ca3af' }}>Цена:</span> <span style={{ textDecoration: 'line-through' }}>{c.oldPrice || '–'}</span> ➔ <strong style={{ color: '#3b82f6' }}>{c.newPrice}</strong></>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Database Table */}
             <div className="card" style={{ marginTop: '2rem' }}>
@@ -314,6 +354,6 @@ export default function FlyteamParser() {
                     </table>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
