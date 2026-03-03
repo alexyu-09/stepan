@@ -57,6 +57,9 @@ export default async function handler(req: any, res: any) {
             price = $('.price').first().text().replace(/\s+/g, ' ').trim();
         }
 
+        // Clean price string to contain only digits (since the DB column is NUMERIC)
+        price = price.replace(/[^\d.]/g, '');
+
         const image_url = $('.thumbnails img').first().attr('src') || '';
         const description = $('#tab-description').html()?.trim() || '';
 

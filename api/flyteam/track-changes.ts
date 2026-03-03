@@ -60,6 +60,8 @@ export default async function handler(req: any, res: any) {
                     newPrice = $('.price').first().text().replace(/\s+/g, ' ').trim();
                 }
 
+                newPrice = newPrice.replace(/[^\d.]/g, '');
+
                 // Compare
                 if (product.availability !== newAvailability || product.price !== newPrice) {
                     changes.push({

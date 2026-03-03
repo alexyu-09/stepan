@@ -21,13 +21,28 @@ export default async function handler(req: any, res: any) {
 
         const categories: Array<{ name: string; url: string }> = [];
 
-        $('ul.nav.navbar-nav > li > a').each((i, el) => {
-            const name = $(el).text().trim();
-            const url = $(el).attr('href');
+        $('ul.nav.navbar-nav > li').each((i, el) => {
+            const topLink = $(el).children('a').first();
+            const topName = topLink.text().trim();
+            const topUrl = topLink.attr('href');
 
-            // Filter out non-category links if any, usually valid ones start with http
-            if (name && url && url.startsWith('http')) {
-                categories.push({ name, url });
+            if (!topName || !topUrl || !topUrl.startsWith('http')) return;
+
+            const subLinks = $(el).find('.dropdown-inner ul li a');
+            if (subLinks.length > 0) {
+                subLinks.each((j, sub) => {
+                    const subName = $(sub).text().trim();
+                    const subUrl = $(sub).attr('href');
+                    if (subUrl && subUrl.startsWith('http')) {
+                        categories.push({ name: `${topName} > ${subName}`, url: subUrl });
+                    }
+                });
+
+                if (topUrl && topUrl.startsWith('http')) {
+                    categories.push({ name: `${topName} (Все)`, url: topUrl });
+                }
+            } else {
+                categories.push({ name: topName, url: topUrl });
             }
         });
 
