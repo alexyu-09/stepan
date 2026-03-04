@@ -122,8 +122,11 @@ export default function FlyteamParser() {
 
         // Generate date string for filename
         const dateStr = new Date().toISOString().split('T')[0];
-        XLSX.writeFile(workbook, `flyteam_products_${dateStr}.xlsx`);
-        addLog('Excel файл успешно сформирован и загружен.');
+        const fullFilename = `flyteam_products_${dateStr}.xlsx`;
+
+        console.log('Attempting to download:', fullFilename);
+        XLSX.writeFile(workbook, fullFilename);
+        addLog(`Excel файл "${fullFilename}" успешно сформирован и отправлен на загрузку.`);
     };
 
     const fetchCategories = async () => {
