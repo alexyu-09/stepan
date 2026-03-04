@@ -119,13 +119,24 @@ export default function FlyteamParser() {
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
-
         // Generate date string for filename
         const dateStr = new Date().toISOString().split('T')[0];
         const fullFilename = `flyteam_products_${dateStr}.xlsx`;
 
-        console.log('Attempting to download:', fullFilename);
-        XLSX.writeFile(workbook, fullFilename);
+        console.log('Generating Excel binary data...');
+        const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        console.log('Triggering download for:', fullFilename);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fullFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
         addLog(`Excel файл "${fullFilename}" успешно сформирован и отправлен на загрузку.`);
     };
 
