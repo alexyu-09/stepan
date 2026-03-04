@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Download, RefreshCw, Search, Database } from 'lucide-react';
+import { Download, RefreshCw, Search, Database, FileSpreadsheet } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
+import * as XLSX from 'xlsx';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -20,6 +21,7 @@ interface Product {
     price: string;
     availability: string;
     image_url: string;
+    export_status: string;
     updated_at: string;
 }
 
@@ -61,12 +63,67 @@ export default function FlyteamParser() {
                 .order('updated_at', { ascending: false });
 
             if (error) throw error;
-            setProducts(data || []);
+
+            // Map data to ensure export_status is present
+            const mappedData = (data || []).map(p => ({
+                ...p,
+                export_status: p.export_status || 'Выгружать'
+            }));
+
+            setProducts(mappedData);
         } catch (err: any) {
             console.error('Error fetching from DB', err);
         } finally {
             setIsLoadingProducts(false);
         }
+    };
+
+    const updateProductStatus = async (productId: string, newStatus: string) => {
+        try {
+            const { error } = await supabase
+                .from('flyteam_products')
+                .update({ export_status: newStatus })
+                .eq('id', productId);
+
+            if (error) throw error;
+
+            // Update local state to reflect change immediately
+            setProducts(prev => prev.map(p =>
+                p.id === productId ? { ...p, export_status: newStatus } : p
+            ));
+        } catch (err: any) {
+            console.error('Error updating status', err);
+            addLog(`Ошибка обновления статуса: ${err.message}`);
+        }
+    };
+
+    const handleDownloadExcel = () => {
+        if (products.length === 0) {
+            alert('Нет данных для выгрузки!');
+            return;
+        }
+
+        const dataToExport = products.map(p => ({
+            'Статус': p.export_status,
+            'Артикул': p.sku,
+            'Название': p.name,
+            'Категория': p.category,
+            'Наличие': p.availability,
+            'Цена': p.price,
+            'URL': p.url,
+            'Image URL': p.image_url,
+            'ID': p.id,
+            'Обновлено': p.updated_at
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+
+        // Generate date string for filename
+        const dateStr = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, `flyteam_products_${dateStr}.xlsx`);
+        addLog('Excel файл успешно сформирован и загружен.');
     };
 
     const fetchCategories = async () => {
@@ -324,6 +381,9 @@ export default function FlyteamParser() {
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         {products.length > 0 && <span className="tag" style={{ background: 'var(--success)', color: '#fff' }}>{products.length} товаров в базе</span>}
+                        <button className="btn btn-secondary" onClick={handleDownloadExcel} disabled={products.length === 0}>
+                            <FileSpreadsheet size={14} /> Скачать Excel
+                        </button>
                         <button className="btn btn-secondary" onClick={fetchProductsFromDB} disabled={isLoadingProducts}>
                             <RefreshCw size={14} className={isLoadingProducts ? 'rotating' : ''} /> Обновить БД
                         </button>
@@ -339,6 +399,7 @@ export default function FlyteamParser() {
                         <table className="fixed-table" style={{ width: '1200px' }}>
                             <thead>
                                 <tr>
+                                    <th style={{ width: '130px', minWidth: '130px' }}>Статус</th>
                                     <th style={{ width: '60px', minWidth: '60px', textAlign: 'center' }}>Фото</th>
                                     <th style={{ width: '120px', minWidth: '120px' }}>Артикул</th>
                                     <th className="sticky-name-col" style={{ width: '400px', minWidth: '400px' }}>Название</th>
@@ -349,10 +410,28 @@ export default function FlyteamParser() {
                             </thead>
                             <tbody>
                                 {products.length === 0 ? (
-                                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Нет данных в базе</td></tr>
+                                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem', opacity: 0.5 }}>Нет данных в базе</td></tr>
                                 ) : (
                                     products.map((p) => (
                                         <tr key={p.id}>
+                                            <td style={{ width: '130px', minWidth: '130px' }}>
+                                                <select
+                                                    className="input"
+                                                    style={{
+                                                        padding: '4px 8px',
+                                                        fontSize: '0.8rem',
+                                                        height: 'auto',
+                                                        border: p.export_status === 'Выгружать' ? '1px solid var(--success)' : '1px solid #6b7280',
+                                                        color: p.export_status === 'Выгружать' ? 'var(--success)' : '#9ca3af',
+                                                        backgroundColor: 'transparent'
+                                                    }}
+                                                    value={p.export_status}
+                                                    onChange={(e) => updateProductStatus(p.id, e.target.value)}
+                                                >
+                                                    <option value="Выгружать" style={{ backgroundColor: '#1e293b' }}>Выгружать</option>
+                                                    <option value="Не выгружать" style={{ backgroundColor: '#1e293b' }}>Не выгружать</option>
+                                                </select>
+                                            </td>
                                             <td style={{ textAlign: 'center', width: '60px', minWidth: '60px' }}>
                                                 {p.image_url ? <img src={p.image_url} alt="img" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} /> : '-'}
                                             </td>
